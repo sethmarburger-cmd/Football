@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Opponent Trend Charts</title>
+  <style>
+    :root {
+      --bg: #f4f1ea;
+      --surface: #fffdf8;
+      --ink: #17211f;
+      --muted: #65736f;
+      --line: #d7ddd5;
+      --primary: #174f45;
+      --primary-ink: #ffffff;
+      --accent: #b35d2c;
+      --blue: #315f8f;
+      --gold: #c39a2e;
+      --red: #9b4039;
+      --green: #557c45;
+      --plum: #71547d;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    header {
+      background: var(--ink);
+      color: var(--primary-ink);
+      padding: 14px clamp(16px, 3vw, 34px);
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(1.25rem, 2vw, 1.65rem);
+      letter-spacing: 0;
+    }
+
+    h2 {
+      font-size: 1rem;
+    }
+
+    h3 {
+      font-size: 0.9rem;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .subhead {
+      color: rgba(255, 255, 255, 0.72);
+      margin-top: 2px;
+    }
+
+    .header-link {
+      border: 1px solid rgba(255,255,255,0.28);
+      border-radius: 8px;
+      padding: 8px 11px;
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(220px, 320px) minmax(220px, 320px) auto;
+      gap: 12px;
+      align-items: end;
+      padding: 12px clamp(16px, 3vw, 34px);
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 8px 20px rgba(23, 33, 31, 0.08);
+    }
+
+    label {
+      display: grid;
+      gap: 5px;
+      min-width: 0;
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    select,
+    button {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--ink);
+      padding: 9px 10px;
+      font: inherit;
+      font-weight: 700;
+    }
+
+    button {
+      width: fit-content;
+      background: var(--primary);
+      color: var(--primary-ink);
+      border-color: var(--primary);
+      cursor: pointer;
+      padding-inline: 16px;
+    }
+
+    main {
+      padding: clamp(16px, 3vw, 34px);
+      display: grid;
+      gap: 16px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      max-width: 980px;
+    }
+
+    .stat,
+    .chart-card,
+    .decision-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .stat {
+      display: grid;
+      gap: 4px;
+    }
+
+    .stat span,
+    .muted {
+      color: var(--muted);
+    }
+
+    .stat strong {
+      font-size: 1.55rem;
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(320px, 1fr));
+      gap: 14px;
+    }
+
+    .chart-card {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .comparison-table {
+      display: grid;
+      gap: 9px;
+    }
+
+    .comparison-head,
+    .comparison-row {
+      display: grid;
+      grid-template-columns: minmax(100px, 1.1fr) minmax(120px, 1fr) minmax(120px, 1fr) 58px;
+      gap: 10px;
+      align-items: center;
+      font-size: 0.88rem;
+    }
+
+    .comparison-head {
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-size: 0.72rem;
+    }
+
+    .comparison-row {
+      border-top: 1px solid var(--line);
+      padding-top: 9px;
+      font-weight: 700;
+    }
+
+    .bar-cell {
+      display: grid;
+      grid-template-columns: 1fr 42px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .bar-track {
+      height: 12px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--line) 75%, #ffffff);
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      display: block;
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: var(--primary);
+    }
+
+    .bar-fill.historical {
+      background: var(--accent);
+    }
+
+    .diff {
+      color: var(--muted);
+      text-align: right;
+    }
+
+    .diff.up {
+      color: var(--primary);
+    }
+
+    .diff.down {
+      color: var(--accent);
+    }
+
+    .decision-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    @media (max-width: 900px) {
+      .toolbar,
+      .stats,
+      .chart-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .comparison-head,
+      .comparison-row {
+        grid-template-columns: 1fr;
+      }
+
+      .diff {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-row">
+      <div>
+        <h1>Opponent Trend Charts</h1>
+        <p class="subhead">Current game compared with historical offensive tendencies</p>
+      </div>
+      <a class="header-link" href="dashboard-v2.html">Data Entry</a>
+    </div>
+  </header>
+
+  <section class="toolbar" aria-label="Trend controls">
+    <label>Opponent Profile
+      <select id="opponentProfile"></select>
+    </label>
+    <label>Offensive Formation
+      <select id="formationFilter"></select>
+    </label>
+    <button id="refreshCharts" type="button">Refresh</button>
+  </section>
+
+  <main>
+    <section class="stats">
+      <div class="stat">
+        <span>Current Game Snaps</span>
+        <strong id="currentSnaps">0</strong>
+      </div>
+      <div class="stat">
+        <span>Historical Snaps</span>
+        <strong id="historicalSnaps">0</strong>
+      </div>
+      <div class="stat">
+        <span>Selected Profile</span>
+        <strong id="profileName">-</strong>
+      </div>
+      <div class="stat">
+        <span>Formation Filter</span>
+        <strong id="formationName">All</strong>
+      </div>
+    </section>
+
+    <section class="decision-card">
+      <h2>Decision Alerts</h2>
+      <ul class="decision-list" id="decisionAlerts"></ul>
+    </section>
+
+    <section class="chart-grid" id="chartGrid" aria-label="Offensive tendency charts"></section>
+  </main>
+
+  <script>
+    const noProfileLabel = "No Opponent Profile";
+    const historicalProfiles = {"PlaylistData 2026-07-09":{"sampleSize":68},"North Scott 2025":{"sampleSize":53},"Decorah 2025":{"sampleSize":202}};
+
+    const dimensions = ["Play Type", "Result", "Offensive Formation", "Offensive Play", "Direction", "Hash", "Down", "Distance", "Gain/Loss", "Explosive"];
+    const $ = (id) => document.getElementById(id);
+    const historicalRowsByProfile = {"PlaylistData 2026-07-09":[{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"ISO","playDirection":"Left","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"BD COUNTER","playDirection":"Left","hash":"Middle","down":"2","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"FB DIVE","playDirection":"Left","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"PRO","offensivePlay":"RB EAGLE","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Right","hash":"Left","down":"3","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"POWER","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"TRIO","offensivePlay":"3 STEP","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PRO","offensivePlay":"REVERSE","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"TWINS","offensivePlay":"HAWK","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Medium","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"PRO","offensivePlay":"BD COUNTER PASS","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLE TIGHT","offensivePlay":"POWER","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLE TIGHT","offensivePlay":"POWER","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Medium","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"TOSS SWEEP","playDirection":"Left","hash":"Right","down":"3","distanceBucket":"Medium","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"TOSS SWEEP","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"ISO","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Short","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"ISO","playDirection":"Left","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush, TD","offensiveFormation":"DOUBLE TIGHT","offensivePlay":"POWER","playDirection":"Left","hash":"Middle","down":"2","distanceBucket":"Medium","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"PRO","offensivePlay":"BD COUNTER BOOTLEG","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"TOSS SWEEP","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"ACE TWINS","offensivePlay":"HAWK","playDirection":"Right","hash":"Middle","down":"3","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"ACE TWINS","offensivePlay":"BOOTLEG","playDirection":"Left","hash":"Right","down":"4","distanceBucket":"Medium","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"ACE - INVERT","offensivePlay":"SPRINT OUT","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush, TD","offensiveFormation":"TWINS","offensivePlay":"POWER","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"POWER","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"POWER","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"POWER","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Medium","gainLossBucket":"13+","explosive":"Yes"},{"playType":"","result":"Timeout","offensiveFormation":"","offensivePlay":"","playDirection":"","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"TOSS SWEEP","playDirection":"Left","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"ACE TWINS","offensivePlay":"BOOTLEG","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Medium","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLE TIGHT","offensivePlay":"POWER","playDirection":"Left","hash":"Right","down":"3","distanceBucket":"Short","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush, TD","offensiveFormation":"DOUBLE TIGHT","offensivePlay":"TOSS SWEEP","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Medium","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"POWER","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"TOSS SWEEP","playDirection":"Left","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"TRIPS","offensivePlay":"SPRINT OUT","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"RB DRAW","playDirection":"Right","hash":"Left","down":"3","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"","result":"Timeout","offensiveFormation":"","offensivePlay":"","playDirection":"","hash":"Middle","down":"4","distanceBucket":"Short","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"TWINS","offensivePlay":"SPRINT OUT","playDirection":"Right","hash":"Left","down":"4","distanceBucket":"Short","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"TOSS SWEEP","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"ISO","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Short","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"TOSS SWEEP","playDirection":"Left","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"TIGHT TRIO","offensivePlay":"RB EAGLE","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Scramble","offensiveFormation":"TRIPS","offensivePlay":"3 STEP","playDirection":"Right","hash":"Right","down":"3","distanceBucket":"Medium","gainLossBucket":"8-12","explosive":"No"},{"playType":"","result":"Timeout","offensiveFormation":"","offensivePlay":"","playDirection":"","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Complete, TD","offensiveFormation":"TWINS","offensivePlay":"RIDE 3 STEP","playDirection":"Left","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"TREY","offensivePlay":"ISO","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"ISO","playDirection":"Right","hash":"Middle","down":"2","distanceBucket":"Medium","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"POWER","playDirection":"Right","hash":"Middle","down":"3","distanceBucket":"Short","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"","offensivePlay":"","playDirection":"Left","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"","playDirection":"Left","hash":"Middle","down":"2","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"","playDirection":"Left","hash":"Left","down":"3","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"","offensivePlay":"","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"","offensivePlay":"","playDirection":"Left","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"","offensivePlay":"","playDirection":"Right","hash":"Middle","down":"2","distanceBucket":"Medium","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"","offensivePlay":"","playDirection":"Left","hash":"Middle","down":"3","distanceBucket":"Medium","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"","offensivePlay":"","playDirection":"Left","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"HEAVY FLEX","offensivePlay":"RB SCREEN","playDirection":"Left","hash":"Left","down":"2","distanceBucket":"Long","gainLossBucket":"13+","explosive":"No"},{"playType":"Run","result":"Penalty","offensiveFormation":"","offensivePlay":"","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLE TIGHT","offensivePlay":"TOSS SWEEP","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Medium","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLE TIGHT","offensivePlay":"TOSS SWEEP","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Medium","gainLossBucket":"No Gain","explosive":"No"},{"playType":"","result":"Timeout","offensiveFormation":"SPLIT","offensivePlay":"","playDirection":"","hash":"Middle","down":"3","distanceBucket":"Medium","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"","offensivePlay":"","playDirection":"Right","hash":"Middle","down":"3","distanceBucket":"Medium","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"","offensivePlay":"","playDirection":"Left","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"FB DIVE","playDirection":"Left","hash":"Middle","down":"2","distanceBucket":"Short","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"","offensivePlay":"","playDirection":"Left","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"","offensivePlay":"","playDirection":"Right","hash":"Middle","down":"2","distanceBucket":"Medium","gainLossBucket":"8-12","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY","offensivePlay":"","playDirection":"","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY","offensivePlay":"","playDirection":"","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY","offensivePlay":"","playDirection":"","hash":"Right","down":"3","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"}],"North Scott 2025":[{"playType":"Run","result":"Rush","offensiveFormation":"EO TREY","offensivePlay":"POWER READ","playDirection":"Left","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"SPLIT","offensivePlay":"FUMBLED SNAP","playDirection":"Left","hash":"Left","down":"2","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Pass","result":"Sack","offensiveFormation":"TRIPS","offensivePlay":"SPRINT OUT","playDirection":"Right","hash":"Left","down":"3","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"COUNTER","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DUFF","offensivePlay":"ZONE READ","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Short","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DUFF","offensivePlay":"QB BD COUNTER","playDirection":"Left","hash":"Right","down":"3","distanceBucket":"Short","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DUFF","offensivePlay":"ZONE READ","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Scramble","offensiveFormation":"DUFF","offensivePlay":"3 STEP","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Medium","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"EO TREY","offensivePlay":"SPRINT OUT","playDirection":"Right","hash":"Left","down":"3","distanceBucket":"Short","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"EO TREY","offensivePlay":"RB EAGLE","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Pass","result":"Penalty","offensiveFormation":"DUFF","offensivePlay":"3 STEP","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"EO TREY","offensivePlay":"TOSS SWEEP","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"DOUBLES","offensivePlay":"SPRINT OUT","playDirection":"Left","hash":"Right","down":"3","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"QB COUNTER READ","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"EO TREY","offensivePlay":"JET SWEEP","playDirection":"Left","hash":"Middle","down":"2","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"EO TREY","offensivePlay":"SPRINT OUT","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DUFF","offensivePlay":"SPLIT FLOW ZONE","playDirection":"Left","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TUFF","offensivePlay":"SWEEP","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Medium","gainLossBucket":"Loss","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"DUFF","offensivePlay":"3 STEP","playDirection":"Right","hash":"Right","down":"3","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"COUNTER","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"DUO WING","offensivePlay":"BOOTLEG","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Pass","result":"Penalty","offensiveFormation":"TUFF","offensivePlay":"","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"TUFF","offensivePlay":"SPRINT PASS","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Medium","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"TRIPS","offensivePlay":"","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Medium","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TUFF","offensivePlay":"ZONE READ","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Short","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PRO","offensivePlay":"INSIDE ZONE","playDirection":"Right","hash":"Right","down":"3","distanceBucket":"Short","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PRO","offensivePlay":"TE SNEAK","playDirection":"Left","hash":"Right","down":"4","distanceBucket":"Short","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"EO TREY","offensivePlay":"WR SCREEN","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DUO WING","offensivePlay":"COUNTER","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Short","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"EO TREY","offensivePlay":"ZONE READ","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TUFF","offensivePlay":"BD COUNTER","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"","result":"Timeout","offensiveFormation":"","offensivePlay":"","playDirection":"","hash":"Right","down":"3","distanceBucket":"Short","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PRO","offensivePlay":"SPRINT OUT","playDirection":"Left","hash":"Right","down":"3","distanceBucket":"Short","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"TUFF","offensivePlay":"HAWK","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TUFF","offensivePlay":"SPLIT FLOW ZONE","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Medium","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"EO TREY","offensivePlay":"SPRINT OUT","playDirection":"Left","hash":"Right","down":"3","distanceBucket":"Medium","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"POWER READ","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"DUFF","offensivePlay":"3 STEP","playDirection":"Right","hash":"Middle","down":"2","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"EO TREY","offensivePlay":"SPRINT OUT","playDirection":"Right","hash":"Middle","down":"3","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"TUFF","offensivePlay":"WR SCREEN","playDirection":"Left","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"13+","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TUFF","offensivePlay":"INSIDE ZONE","playDirection":"Left","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"EO TREY","offensivePlay":"SWEEP","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Pass","result":"Sack","offensiveFormation":"TUFF","offensivePlay":"3 STEP","playDirection":"Right","hash":"Middle","down":"2","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"DUFF","offensivePlay":"RIDE 3 STEP","playDirection":"Right","hash":"Right","down":"3","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TUFF","offensivePlay":"QB COUNTER READ","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"TUFF","offensivePlay":"3 STEP","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Penalty","offensiveFormation":"EO TREY","offensivePlay":"WR SCREEN","playDirection":"Right","hash":"Middle","down":"2","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Run","result":"Penalty","offensiveFormation":"DUFF","offensivePlay":"3 STEP","playDirection":"Right","hash":"Middle","down":"2","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"DUFF","offensivePlay":"SPRINT OUT","playDirection":"Right","hash":"Middle","down":"2","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"QB COUNTER READ","playDirection":"Left","hash":"Middle","down":"3","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Pass","result":"Sack","offensiveFormation":"DUFF","offensivePlay":"3 STEP","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DUFF","offensivePlay":"INSIDE ZONE","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TUFF","offensivePlay":"QB BD COUNTER READ","playDirection":"Right","hash":"Right","down":"3","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"}],"Decorah 2025":[{"playType":"Run","result":"Rush","offensiveFormation":"PUFF","offensivePlay":"BUCK SWEEP","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"PRO","offensivePlay":"RIDE PASS","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PRO","offensivePlay":"SPLIT FLOW ZONE READ","playDirection":"Left","hash":"Middle","down":"3","distanceBucket":"Short","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"JET SWEEP","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Penalty","offensiveFormation":"TWINS","offensivePlay":"BUCK SWEEP","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Medium","gainLossBucket":"Loss","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"DOUBLES","offensivePlay":"WR SCREEN","playDirection":"Left","hash":"Left","down":"2","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Right","hash":"Left","down":"3","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"QB SNEAK","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"EO TWINS","offensivePlay":"QB POWER","playDirection":"Left","hash":"Middle","down":"2","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"SPLIT FLOW ZONE READ","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Penalty","offensiveFormation":"PUFF","offensivePlay":"HITCH AND GO","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Medium","gainLossBucket":"Loss","explosive":"No"},{"playType":"Run","result":"Fumble","offensiveFormation":"EO TWINS","offensivePlay":"QB SUPER POWER","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"EO TWINS","offensivePlay":"3 STEP","playDirection":"Left","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Scramble","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"RUMBLE","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"TACKLE WRAP","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Medium","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"QB SUPER ISO FOLD","playDirection":"Right","hash":"Right","down":"3","distanceBucket":"Short","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Left","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"QB DRAW","playDirection":"Left","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Left","hash":"Middle","down":"2","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"QB DRAW","playDirection":"Left","hash":"Middle","down":"3","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"PUFF","offensivePlay":"RIDE PASS","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"SPLIT FLOW ZONE READ","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Short","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PUFF","offensivePlay":"ISO FOLD","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PUFF","offensivePlay":"SPLIT FLOW ZONE FOLLOW","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"PUFF","offensivePlay":"HITCH AND GO","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLE TIGHT","offensivePlay":"BUCK SWEEP","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Pass","result":"Complete, TD","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Right","hash":"Left","down":"3","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"CENTER FOLD","playDirection":"Left","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"QB RUMBLE","playDirection":"Right","hash":"Middle","down":"2","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"QB INSIDE ZONE","playDirection":"Left","hash":"Middle","down":"3","distanceBucket":"Short","gainLossBucket":"8-12","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"13+","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"RUMBLE","playDirection":"Left","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Left","hash":"Middle","down":"2","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Right","hash":"Middle","down":"3","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"PUFF","offensivePlay":"1 STEP","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PUFF","offensivePlay":"SPLIT FLOW ZONE FOLLOW","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Medium","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"SPLIT FLOW ZONE READ?","playDirection":"Left","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PUFF","offensivePlay":"CENTER FOLD","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Medium","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PUFF","offensivePlay":"BUCK SWEEP","playDirection":"Left","hash":"Right","down":"3","distanceBucket":"Medium","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"PUFF","offensivePlay":"3 STEP","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"SPLIT FLOW ZONE CUTBACK","playDirection":"Left","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"SPLIT FLOW ZONE READ","playDirection":"Left","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"TACKLE WRAP","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Medium","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"TACKLE WRAP","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush, TD","offensiveFormation":"TWINS","offensivePlay":"POWER","playDirection":"Right","hash":"Middle","down":"2","distanceBucket":"Short","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"SPLIT FLOW ZONE READ","playDirection":"Left","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"DD COUNTER","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"QB SUPER TACKLE WRAP","playDirection":"Right","hash":"Right","down":"3","distanceBucket":"Short","gainLossBucket":"Loss","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PUFF","offensivePlay":"ISO FOLD","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PUFF","offensivePlay":"RUMBLE","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Medium","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"ISO","playDirection":"Left","hash":"Right","down":"3","distanceBucket":"Short","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"SPLIT FLOW ZONE READ","playDirection":"Left","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"TWINS","offensivePlay":"SPLIT FLOW ZONE PASS","playDirection":"Left","hash":"Middle","down":"2","distanceBucket":"Medium","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"TWINS","offensivePlay":"3 STEP","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"SPLIT FLOW ZONE CUTBACK","playDirection":"Left","hash":"Left","down":"2","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"TWINS","offensivePlay":"3 STEP","playDirection":"Right","hash":"Left","down":"3","distanceBucket":"Medium","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"QB RUMBLE","playDirection":"Left","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"RUMBLE","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Medium","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Pass","result":"Complete","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Left","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"DOUBLES","offensivePlay":"WR SCREEN","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Short","gainLossBucket":"8-12","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Right","hash":"Middle","down":"2","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"QB BLAST","playDirection":"Left","hash":"Middle","down":"3","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"EO TWINS","offensivePlay":"QB POWER","playDirection":"Left","hash":"Middle","down":"1","distanceBucket":"Medium","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush, TD","offensiveFormation":"HEAVY SPLIT","offensivePlay":"QB SUPER BLAST","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Short","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TIGHT PRO","offensivePlay":"POWER","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"TUFF","offensivePlay":"ISO FOLD","playDirection":"Left","hash":"Left","down":"1","distanceBucket":"Medium","gainLossBucket":"Loss","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"TWINS","offensivePlay":"3 STEP","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"TWINS","offensivePlay":"3 STEP","playDirection":"Left","hash":"Left","down":"3","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"BUCK SWEEP","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"RUMBLE","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"ISO","playDirection":"Right","hash":"Right","down":"3","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Sack","offensiveFormation":"TWINS","offensivePlay":"POWER PASS","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"TWINS","offensivePlay":"WR SCREEN","playDirection":"Left","hash":"Middle","down":"2","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"TWINS","offensivePlay":"3 STEP","playDirection":"Left","hash":"Left","down":"3","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"EO TWINS","offensivePlay":"QB POWER","playDirection":"Left","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"TWINS","offensivePlay":"RIDE 3 STEP","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"TWINS","offensivePlay":"RIDE 3 STEP","playDirection":"Right","hash":"Left","down":"3","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"ACE HALF INVERT","offensivePlay":"RUMBLE","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PRO","offensivePlay":"SPLIT FLOW ZONE FOLLOW","playDirection":"Left","hash":"Middle","down":"2","distanceBucket":"Short","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"DUFF","offensivePlay":"WR SCREEN","playDirection":"Left","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"PRO","offensivePlay":"RIDE 3 STEP","playDirection":"Left","hash":"Middle","down":"2","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"TREY WING","offensivePlay":"RB SCREEN","playDirection":"Left","hash":"Middle","down":"3","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"PRO","offensivePlay":"RIDE 3 STEP","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"JET SWEEP","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"TWINS","offensivePlay":"RIDE 3 STEP","playDirection":"Right","hash":"Right","down":"3","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TRIPS","offensivePlay":"INSIDE ZONE","playDirection":"Left","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"QB TACKLE WRAP","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TRIPS","offensivePlay":"INSIDE ZONE","playDirection":"Left","hash":"Middle","down":"3","distanceBucket":"Medium","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Pass","result":"Complete","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TRIPS","offensivePlay":"TRAP","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Medium","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Scramble","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Right","hash":"Right","down":"3","distanceBucket":"Short","gainLossBucket":"8-12","explosive":"No"},{"playType":"Pass","result":"Scramble","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"TRIPS","offensivePlay":"3 STEP","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Fumble","offensiveFormation":"DOUBLES","offensivePlay":"EAGLE","playDirection":"Right","hash":"Right","down":"3","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"POWER","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"QB DD COUNTER","playDirection":"Left","hash":"Middle","down":"2","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"TRIPS","offensivePlay":"3 STEP","playDirection":"Left","hash":"Middle","down":"3","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TRIPS","offensivePlay":"RUMBLE","playDirection":"Left","hash":"Left","down":"4","distanceBucket":"Short","gainLossBucket":"8-12","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"TRIPS","offensivePlay":"TACKLE WRAP","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Left","hash":"Left","down":"2","distanceBucket":"Short","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"QB TACKLE WRAP","playDirection":"Right","hash":"Left","down":"3","distanceBucket":"Short","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TRIPS","offensivePlay":"INSIDE ZONE","playDirection":"Left","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Short","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"INSIDE ZONE","playDirection":"Left","hash":"Right","down":"3","distanceBucket":"Short","gainLossBucket":"Loss","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Left","hash":"Right","down":"4","distanceBucket":"Medium","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TIGHT PRO","offensivePlay":"BUCK SWEEP","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DUFF","offensivePlay":"SPLIT FLOW ZONE FOLLOW","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"POWER","playDirection":"Right","hash":"Middle","down":"3","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PRO","offensivePlay":"POWER","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"PRO","offensivePlay":"TACKLE WRAP","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"ACE HALF INVERT","offensivePlay":"QB BD COUNTER","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"ACE LEFT HALF INVERT","offensivePlay":"ISO FOLD","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Medium","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TUFF","offensivePlay":"ISO FOLD","playDirection":"Left","hash":"Right","down":"3","distanceBucket":"Short","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"JET SWEEP","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"SUPER POWER","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Short","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush, TD","offensiveFormation":"HEAVY SPLIT","offensivePlay":"SUPER ISO FOLD","playDirection":"Right","hash":"Right","down":"3","distanceBucket":"Short","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PRO","offensivePlay":"TACKLE WRAP","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"Yes"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"TUFF","offensivePlay":"3 STEP","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TUFF","offensivePlay":"QB SPRINT DRAW?","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Complete, TD","offensiveFormation":"ACE HALF INVERT","offensivePlay":"RIDE PASS","playDirection":"Left","hash":"Left","down":"3","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"PRO","offensivePlay":"SPLIT FLOW ZONE FOLLOW","playDirection":"Left","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Complete, TD","offensiveFormation":"TWINS","offensivePlay":"3 STEP","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"ISO FOLD","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Pass","result":"Scramble","offensiveFormation":"TWINS","offensivePlay":"RIDE PASS","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"PRO","offensivePlay":"3 STEP","playDirection":"Left","hash":"Right","down":"3","distanceBucket":"Long","gainLossBucket":"13+","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"SUPER ISO FOLD","playDirection":"Left","hash":"Middle","down":"4","distanceBucket":"Short","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"SPLIT FLOW ZONE","playDirection":"Left","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"TACKLE WRAP SWEEP","playDirection":"Right","hash":"Middle","down":"2","distanceBucket":"Medium","gainLossBucket":"8-12","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"DD COUNTER","playDirection":"Left","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush, TD","offensiveFormation":"HEAVY SPLIT","offensivePlay":"SUPER ISO FOLD","playDirection":"Left","hash":"Left","down":"1","distanceBucket":"Short","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DUFF","offensivePlay":"SPLIT FLOW ZONE","playDirection":"Left","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"TUFF","offensivePlay":"3 STEP","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Medium","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"TWINS","offensivePlay":"RIDE PASS","playDirection":"Left","hash":"Left","down":"3","distanceBucket":"Medium","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"ACE HALF INVERT","offensivePlay":"JET SWEEP","playDirection":"Left","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PRO","offensivePlay":"TACKLE WRAP SWEEP","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush, TD","offensiveFormation":"TWINS","offensivePlay":"RUMBLE","playDirection":"Left","hash":"Left","down":"2","distanceBucket":"Medium","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Interception","offensiveFormation":"PRO","offensivePlay":"RIDE PASS","playDirection":"Left","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"","explosive":""},{"playType":"Run","result":"Rush","offensiveFormation":"ACE HALF INVERT","offensivePlay":"QB CD COUNTER","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Pass","result":"Complete","offensiveFormation":"TRIPS","offensivePlay":"3 STEP","playDirection":"Right","hash":"Right","down":"3","distanceBucket":"Long","gainLossBucket":"13+","explosive":"No"},{"playType":"Pass","result":"Complete, TD","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Right","hash":"Middle","down":"4","distanceBucket":"Short","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"ACE HALF INVERT","offensivePlay":"ISO FOLD","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"PRO","offensivePlay":"FUMBLED SNAP","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"ACE LEFT HALF INVERT","offensivePlay":"ISO FOLD","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush, TD","offensiveFormation":"TWINS","offensivePlay":"JET SWEEP","playDirection":"Right","hash":"Left","down":"3","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"ISO FOLD","playDirection":"Left","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"AD COUNTER","playDirection":"Left","hash":"Left","down":"2","distanceBucket":"Short","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"TACKLE WRAP SWEEP","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"ISO G","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"TWINS","offensivePlay":"RIDE PASS","playDirection":"Right","hash":"Right","down":"3","distanceBucket":"Medium","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Pass","result":"Complete","offensiveFormation":"TWINS","offensivePlay":"EAGLE","playDirection":"Left","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"INSIDE ZONE","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"TWINS","offensivePlay":"3 STEP","playDirection":"Right","hash":"Right","down":"3","distanceBucket":"Medium","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"TWINS","offensivePlay":"3 STEP","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"ACE HALF INVERT","offensivePlay":"INSIDE ZONE","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Short","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Complete, TD","offensiveFormation":"HEAVY SPLIT","offensivePlay":"1 STEP","playDirection":"Left","hash":"Middle","down":"3","distanceBucket":"Short","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Pass","result":"Complete","offensiveFormation":"DOUBLES","offensivePlay":"EAGLE","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Medium","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"QB SWEEP","playDirection":"Left","hash":"Right","down":"3","distanceBucket":"Medium","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"RAM","playDirection":"Left","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"SWEEP","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"TWINS","offensivePlay":"1 STEP","playDirection":"Right","hash":"Middle","down":"3","distanceBucket":"Short","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"TWINS","offensivePlay":"3 STEP","playDirection":"Right","hash":"Right","down":"1","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"TWINS","offensivePlay":"3 STEP","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Scramble","offensiveFormation":"TWINS","offensivePlay":"3 STEP","playDirection":"Right","hash":"Right","down":"3","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"ISO","playDirection":"Right","hash":"Right","down":"4","distanceBucket":"Short","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"ACE HALF INVERT","offensivePlay":"RIDE 1 STEP","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Interception","offensiveFormation":"TWINS","offensivePlay":"EAGLE AND GO","playDirection":"Right","hash":"Middle","down":"2","distanceBucket":"Medium","gainLossBucket":"","explosive":""},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"QB ISO","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"SPLIT FLOW ZONE","playDirection":"Right","hash":"Middle","down":"2","distanceBucket":"Medium","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"QB DD COUNTER","playDirection":"Left","hash":"Right","down":"3","distanceBucket":"Medium","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"HEAVY SPLIT","offensivePlay":"3 STEP","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"QB ISO FOLD","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Medium","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"QB SUPER ISO FOLD","playDirection":"Right","hash":"Right","down":"3","distanceBucket":"Short","gainLossBucket":"Loss","explosive":"No"},{"playType":"Pass","result":"Scramble","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Right","hash":"Right","down":"3","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"ACE HALF INVERT","offensivePlay":"ISO FOLD","playDirection":"Left","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PRO","offensivePlay":"RAM","playDirection":"Left","hash":"Middle","down":"2","distanceBucket":"Medium","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLE TIGHT","offensivePlay":"POWER","playDirection":"Left","hash":"Middle","down":"3","distanceBucket":"Short","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"HEAVY SPLIT","offensivePlay":"ISO","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Penalty","offensiveFormation":"HEAVY SPLIT","offensivePlay":"3 STEP","playDirection":"","hash":"Left","down":"2","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"HEAVY SPLIT","offensivePlay":"3 STEP","playDirection":"Right","hash":"Middle","down":"2","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"HEAVY SPLIT","offensivePlay":"RIDE 3 STEP","playDirection":"Left","hash":"Middle","down":"3","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Left","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"TRIPS","offensivePlay":"3 STEP","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Long","gainLossBucket":"13+","explosive":"No"},{"playType":"Pass","result":"Fumble","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Left","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"","explosive":""},{"playType":"Pass","result":"Scramble","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"DOUBLES","offensivePlay":"INSIDE ZONE","playDirection":"Left","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"DOUBLES","offensivePlay":"3 STEP","playDirection":"Right","hash":"Middle","down":"3","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"ACE HALF INVERT","offensivePlay":"OUTSIDE ZONE??","playDirection":"Right","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"Loss","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PRO","offensivePlay":"RUMBLE","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PRO","offensivePlay":"SPLIT FLOW ZONE READ","playDirection":"Left","hash":"Right","down":"3","distanceBucket":"Medium","gainLossBucket":"4-7","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PRO","offensivePlay":"QB ISO","playDirection":"Right","hash":"Middle","down":"4","distanceBucket":"Short","gainLossBucket":"1-3","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"TREY WING","offensivePlay":"3 STEP","playDirection":"Left","hash":"Middle","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"SPLIT FLOW ZONE CUTBACK","playDirection":"Left","hash":"Left","down":"2","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"SPLIT FLOW ZONE CUTBACK","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"1-3","explosive":"No"},{"playType":"Run","result":"Rush, TD","offensiveFormation":"PRO","offensivePlay":"BUCK SWEEP","playDirection":"Right","hash":"Middle","down":"2","distanceBucket":"Long","gainLossBucket":"13+","explosive":"Yes"},{"playType":"Pass","result":"Incomplete","offensiveFormation":"TWINS","offensivePlay":"3 STEP","playDirection":"Right","hash":"Left","down":"2","distanceBucket":"Long","gainLossBucket":"No Gain","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"TWINS","offensivePlay":"ISO","playDirection":"Left","hash":"Left","down":"3","distanceBucket":"Long","gainLossBucket":"8-12","explosive":"No"},{"playType":"Run","result":"Rush","offensiveFormation":"PRO","offensivePlay":"TOSS SWEEP","playDirection":"Right","hash":"Left","down":"1","distanceBucket":"Long","gainLossBucket":"4-7","explosive":"No"},{"playType":"Pass","result":"Complete","offensiveFormation":"TWINS","offensivePlay":"1 STEP","playDirection":"Right","hash":"Right","down":"2","distanceBucket":"Medium","gainLossBucket":"No Gain","explosive":"No"}]};
+
+    function savedEntries() {
+      return JSON.parse(localStorage.getItem("defenseDashboardV2Entries") || "[]");
+    }
+
+    function bucketDistance(value) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return "";
+      if (n <= 3) return "Short";
+      if (n <= 7) return "Medium";
+      return "Long";
+    }
+
+    function bucketGain(value) {
+      const n = Number(String(value).replace("+", ""));
+      if (!Number.isFinite(n)) return "";
+      if (n < 0) return "Loss";
+      if (n === 0) return "No Gain";
+      if (n <= 3) return "1-3";
+      if (n <= 7) return "4-7";
+      if (n <= 12) return "8-12";
+      return "13+";
+    }
+
+    function rowValue(entry, dimension) {
+      if (dimension === "Play Type") return normalizedText(entry.playType);
+      if (dimension === "Result") return normalizedText(entry.result);
+      if (dimension === "Offensive Formation") return normalizedText(entry.offensiveFormation);
+      if (dimension === "Offensive Play") return normalizedText(entry.offensivePlay);
+      if (dimension === "Direction") return normalizedText(entry.playDirection);
+      if (dimension === "Hash") return normalizedText(entry.hash);
+      if (dimension === "Down") return normalizedText(entry.down);
+      if (dimension === "Distance") return entry.distanceBucket || bucketDistance(entry.distance);
+      if (dimension === "Gain/Loss") return entry.gainLossBucket || bucketGain(entry.gainLoss);
+      if (dimension === "Explosive") return normalizedText(entry.explosive);
+      return "";
+    }
+
+    function countsFor(entries, dimension) {
+      return entries.reduce((counts, entry) => {
+        const value = rowValue(entry, dimension);
+        if (!value) return counts;
+        counts[value] = (counts[value] || 0) + 1;
+        return counts;
+      }, {});
+    }
+
+    function filterByFormation(entries, formation) {
+      if (!formation || formation === "All Formations") return entries;
+      return entries.filter(entry => canonicalFormation(entry.offensiveFormation) === canonicalFormation(formation));
+    }
+
+    function canonicalFormation(value) {
+      return normalizedText(value);
+    }
+
+    function normalizedText(value) {
+      return String(value || "")
+        .trim()
+        .replace(/^['"]+|['"]+$/g, "")
+        .replace(/\s+/g, " ")
+        .toUpperCase();
+    }
+
+    function formationOptions(currentEntries, profileRows) {
+      const formations = new Set();
+      currentEntries.forEach(entry => {
+        if (entry.offensiveFormation) formations.add(canonicalFormation(entry.offensiveFormation));
+      });
+      profileRows.forEach(entry => {
+        if (entry.offensiveFormation) formations.add(canonicalFormation(entry.offensiveFormation));
+      });
+      return ["All Formations"].concat([...formations].sort((a, b) => a.localeCompare(b)));
+    }
+
+    function populateFormationFilter(currentEntries, profileRows) {
+      const existingValue = $("formationFilter").value || "All Formations";
+      const options = formationOptions(currentEntries, profileRows);
+      $("formationFilter").innerHTML = options.map(name => `<option>${name}</option>`).join("");
+      $("formationFilter").value = options.includes(existingValue) ? existingValue : "All Formations";
+    }
+
+    function total(counts) {
+      return Object.values(counts).reduce((sum, value) => sum + value, 0);
+    }
+
+    function pctFor(counts, key) {
+      const sum = total(counts);
+      return sum ? Math.round(((counts[key] || 0) / sum) * 100) : 0;
+    }
+
+    function comparisonEntries(current, historical, limit = 8) {
+      const keys = new Set([...Object.keys(current), ...Object.keys(historical)]);
+      return [...keys]
+        .map((key) => ({
+          key,
+          currentPct: pctFor(current, key),
+          historicalPct: pctFor(historical, key),
+          currentCount: current[key] || 0,
+          historicalCount: historical[key] || 0
+        }))
+        .sort((a, b) => {
+          const aWeight = Math.max(a.currentPct, a.historicalPct);
+          const bWeight = Math.max(b.currentPct, b.historicalPct);
+          return bWeight - aWeight || a.key.localeCompare(b.key);
+        })
+        .slice(0, limit);
+    }
+
+    function diffClass(value) {
+      if (value >= 10) return "diff up";
+      if (value <= -10) return "diff down";
+      return "diff";
+    }
+
+    function signedPct(value) {
+      return value > 0 ? `+${value}` : String(value);
+    }
+
+    function comparisonRows(current, historical) {
+      const rows = comparisonEntries(current, historical);
+      if (!rows.length) return `<p class="muted">No data yet.</p>`;
+      return rows.map((row) => {
+        const diff = row.currentPct - row.historicalPct;
+        return `
+          <div class="comparison-row">
+            <span>${escapeHtml(row.key)}</span>
+            <span class="bar-cell">
+              <span class="bar-track"><span class="bar-fill" style="width:${row.currentPct}%"></span></span>
+              <span>${row.currentPct}%</span>
+            </span>
+            <span class="bar-cell">
+              <span class="bar-track"><span class="bar-fill historical" style="width:${row.historicalPct}%"></span></span>
+              <span>${row.historicalPct}%</span>
+            </span>
+            <span class="${diffClass(diff)}">${signedPct(diff)}</span>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function chartCard(dimension, current, historical) {
+      return `
+        <article class="chart-card">
+          <h2>${dimension}</h2>
+          <div class="comparison-table" role="img" aria-label="${dimension} current game versus historical comparison">
+            <div class="comparison-head">
+              <span>Category</span>
+              <span>Current</span>
+              <span>Historical</span>
+              <span>Diff</span>
+            </div>
+            ${comparisonRows(current, historical)}
+          </div>
+        </article>
+      `;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function rate(counts, key) {
+      const sum = total(counts);
+      return sum ? Math.round(((counts[key] || 0) / sum) * 100) : 0;
+    }
+
+    function renderAlerts(entries, historicalEntries, formation, hasHistoricalProfile) {
+      const alerts = [];
+      const currentPlayType = countsFor(entries, "Play Type");
+      const historicalPlayType = countsFor(historicalEntries, "Play Type");
+      const currentFormation = countsFor(entries, "Offensive Formation");
+      const historicalFormation = countsFor(historicalEntries, "Offensive Formation");
+      const currentExplosive = countsFor(entries, "Explosive");
+      const historicalExplosive = countsFor(historicalEntries, "Explosive");
+      if (!entries.length) {
+        alerts.push(formation === "All Formations" ? "No current-game entries yet. Use the data-entry page to start building live tendencies." : `No current-game entries yet for ${formation}.`);
+      }
+      if (!hasHistoricalProfile) {
+        alerts.push("No opponent profile selected. Charts are showing current-game data only.");
+      } else if (!historicalEntries.length) {
+        alerts.push(`No historical entries are available for ${formation}.`);
+      }
+      if (hasHistoricalProfile && rate(currentPlayType, "Run") >= rate(historicalPlayType, "Run") + 15 && entries.length >= 4) {
+        alerts.push("Current game is leaning run more than this filtered historical profile. Tighten run fits and watch the boot/RPO answer.");
+      }
+      if (hasHistoricalProfile && rate(currentPlayType, "Pass") >= rate(historicalPlayType, "Pass") + 15 && entries.length >= 4) {
+        alerts.push("Current game is leaning pass more than the filtered history. Protect quick game windows and screen pursuit.");
+      }
+      const topCurrentFormation = Object.entries(currentFormation).sort((a, b) => b[1] - a[1])[0];
+      const topHistoricalFormation = Object.entries(historicalFormation).sort((a, b) => b[1] - a[1])[0];
+      if (formation === "All Formations" && topCurrentFormation && topHistoricalFormation && topCurrentFormation[0] !== topHistoricalFormation[0]) {
+        alerts.push(`Live top formation is ${topCurrentFormation[0]}, while history points to ${topHistoricalFormation[0]}. Treat the live formation as the priority until the pattern changes.`);
+      }
+      if (hasHistoricalProfile && rate(currentExplosive, "Yes") > rate(historicalExplosive, "Yes") && entries.length >= 4) {
+        alerts.push("Explosive rate is above the historical profile. Favor calls that keep the ball in front and force earned yards.");
+      }
+      $("decisionAlerts").innerHTML = alerts.map(alert => `<li>${alert}</li>`).join("");
+    }
+
+    function render() {
+      const profileKey = $("opponentProfile").value;
+      const profile = historicalProfiles[profileKey] || { sampleSize: 0 };
+      const hasHistoricalProfile = profileKey !== noProfileLabel;
+      const profileRows = hasHistoricalProfile ? historicalRowsByProfile[profileKey] || [] : [];
+      const entries = savedEntries();
+      populateFormationFilter(entries, profileRows);
+      const formation = $("formationFilter").value;
+      const filteredEntries = filterByFormation(entries, formation);
+      const filteredHistoricalRows = filterByFormation(profileRows, formation);
+      $("currentSnaps").textContent = filteredEntries.length;
+      $("historicalSnaps").textContent = filteredHistoricalRows.length;
+      $("profileName").textContent = profileKey;
+      $("formationName").textContent = formation.replace(" Formations", "");
+      $("chartGrid").innerHTML = dimensions.map((dimension) => {
+        return chartCard(dimension, countsFor(filteredEntries, dimension), countsFor(filteredHistoricalRows, dimension));
+      }).join("");
+      renderAlerts(filteredEntries, filteredHistoricalRows, formation, hasHistoricalProfile);
+    }
+
+    $("opponentProfile").innerHTML = [noProfileLabel].concat(Object.keys(historicalProfiles)).map(name => `<option>${name}</option>`).join("");
+    $("opponentProfile").addEventListener("change", render);
+    $("formationFilter").addEventListener("change", render);
+    $("refreshCharts").addEventListener("click", render);
+    render();
+  </script>
+</body>
+</html>

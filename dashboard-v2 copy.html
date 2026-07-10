@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Defensive Dashboard V2</title>
+  <style>
+    :root {
+      --bg: #f4f1ea;
+      --surface: #fffdf8;
+      --ink: #17211f;
+      --muted: #65736f;
+      --line: #d7ddd5;
+      --primary: #174f45;
+      --primary-ink: #ffffff;
+      --accent: #b35d2c;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    header {
+      background: var(--ink);
+      color: var(--primary-ink);
+      padding: 14px clamp(16px, 3vw, 34px);
+    }
+
+    h1,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(1.25rem, 2vw, 1.65rem);
+      letter-spacing: 0;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .subhead {
+      color: rgba(255, 255, 255, 0.72);
+      margin-top: 2px;
+    }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .header-link {
+      border: 1px solid rgba(255,255,255,0.28);
+      border-radius: 8px;
+      padding: 8px 11px;
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    .entry-bar {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: grid;
+      grid-template-columns: 82px 104px 104px 132px minmax(150px, 1fr) minmax(150px, 1fr) minmax(180px, 1.1fr);
+      gap: 10px;
+      align-items: end;
+      padding: 12px clamp(16px, 3vw, 34px);
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 8px 20px rgba(23, 33, 31, 0.08);
+    }
+
+    .detail-bar {
+      display: grid;
+      grid-template-columns: minmax(130px, 0.9fr) minmax(130px, 0.9fr) 96px minmax(130px, 0.9fr) minmax(120px, 0.8fr) 104px minmax(190px, 1.2fr) auto;
+      gap: 10px;
+      align-items: end;
+      padding: 12px clamp(16px, 3vw, 34px);
+      background: color-mix(in srgb, var(--surface) 84%, var(--bg));
+      border-bottom: 1px solid var(--line);
+    }
+
+    label {
+      display: grid;
+      gap: 5px;
+      min-width: 0;
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    input,
+    select,
+    button {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--ink);
+      padding: 9px 10px;
+      font: inherit;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    button {
+      background: var(--primary);
+      color: var(--primary-ink);
+      border-color: var(--primary);
+      cursor: pointer;
+      padding-inline: 16px;
+    }
+
+    .secondary-button {
+      background: #ffffff;
+      color: var(--ink);
+      border-color: var(--line);
+    }
+
+    button:hover,
+    button:focus {
+      filter: brightness(1.06);
+    }
+
+    input:focus,
+    select:focus,
+    button:focus {
+      outline: 2px solid color-mix(in srgb, var(--primary) 35%, transparent);
+      outline-offset: 2px;
+      border-color: var(--primary);
+    }
+
+    main {
+      padding: clamp(16px, 3vw, 34px);
+      display: grid;
+      gap: 16px;
+    }
+
+    .readout-title {
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      max-width: 1180px;
+    }
+
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+      min-height: 150px;
+    }
+
+    .summary-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .summary-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 7px;
+      font-weight: 700;
+    }
+
+    .summary-count {
+      color: var(--primary);
+    }
+
+    .empty-state {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .entry-list {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+      max-width: 1180px;
+    }
+
+    .entry-row {
+      display: grid;
+      grid-template-columns: 64px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      padding: 9px 0;
+    }
+
+    .entry-row:last-child {
+      border-bottom: 0;
+    }
+
+    .entry-number {
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .entry-main {
+      display: grid;
+      gap: 2px;
+      font-weight: 800;
+    }
+
+    .entry-detail {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .edit-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .edit-actions button {
+      min-height: 34px;
+      padding: 6px 10px;
+      width: auto;
+    }
+
+    @media (max-width: 980px) {
+      .entry-bar,
+      .detail-bar {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .entry-bar,
+      .detail-bar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .entry-row {
+        grid-template-columns: 1fr;
+      }
+
+      .edit-actions {
+        justify-content: start;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .entry-bar,
+      .detail-bar {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="header-row">
+        <div>
+          <h1>Defensive Game Dashboard</h1>
+          <p class="subhead">Entry bar foundation</p>
+        </div>
+        <a class="header-link" href="trends.html">Trend Charts</a>
+      </div>
+    </header>
+
+    <section class="entry-bar" aria-label="Play entry bar">
+      <label>Down
+        <input id="down" type="text" value="1" inputmode="text" autocomplete="off">
+      </label>
+      <label>Distance
+        <input id="distance" type="text" value="10" inputmode="text" autocomplete="off">
+      </label>
+      <label>Yard Line
+        <input id="yardLine" type="text" value="25" inputmode="text" autocomplete="off">
+      </label>
+      <label>Hash
+        <select id="hash">
+          <option>Left</option>
+          <option selected>Center</option>
+          <option>Right</option>
+        </select>
+      </label>
+      <label>Front
+        <input id="front" type="text" value="" list="front-options" autocomplete="off">
+      </label>
+      <label>Coverage
+        <input id="coverage" type="text" value="" list="coverage-options" autocomplete="off">
+      </label>
+      <label>Offensive Formation
+        <input id="offensiveFormation" type="text" value="" autocomplete="off">
+      </label>
+    </section>
+
+    <section class="detail-bar" aria-label="Play result entry bar">
+      <label>Play Type
+        <select id="playType">
+          <option selected>Run</option>
+          <option>Pass</option>
+          <option>RPO</option>
+          <option>Screen</option>
+          <option>Boot</option>
+          <option>Draw</option>
+          <option>Penalty</option>
+        </select>
+      </label>
+      <label>Result
+        <select id="result">
+          <option selected>Complete</option>
+          <option>Incomplete</option>
+          <option>Rush</option>
+          <option>Sack</option>
+          <option>Interception</option>
+          <option>Fumble</option>
+          <option>Touchdown</option>
+          <option>Penalty</option>
+        </select>
+      </label>
+      <label>Gain/Loss
+        <input id="gainLoss" type="text" value="0" inputmode="text" autocomplete="off">
+      </label>
+      <label>Off Play
+        <input id="offensivePlay" type="text" value="" autocomplete="off">
+      </label>
+      <label>Direction
+        <select id="playDirection">
+          <option>Left</option>
+          <option selected>Middle</option>
+          <option>Right</option>
+          <option>Field</option>
+          <option>Boundary</option>
+        </select>
+      </label>
+      <label>Explosive
+        <select id="explosive">
+          <option selected>No</option>
+          <option>Yes</option>
+        </select>
+      </label>
+      <label>Notes
+        <input id="notes" type="text" value="" autocomplete="off">
+      </label>
+      <button id="enterPlay" type="button">Enter</button>
+      <button class="secondary-button" id="cancelEdit" type="button" hidden>Cancel Edit</button>
+      <button class="secondary-button" id="exportExcel" type="button">Export Excel</button>
+    </section>
+
+    <datalist id="front-options">
+      <option value="NICKEL STEM STRONG"></option>
+      <option value="SLANT WEAK"></option>
+      <option value="STEM STRONG"></option>
+      <option value="TACKLES PINCH STRONG"></option>
+      <option value="TIGER"></option>
+      <option value="TIGER MAP"></option>
+      <option value="TIGER TACKLES PINCH"></option>
+      <option value="TIGER TIGHT STRONG"></option>
+      <option value="TIGER WAC"></option>
+      <option value="TIGER ZAP WEAK"></option>
+      <option value="TIGHT"></option>
+      <option value="TIGHT PINCH"></option>
+    </datalist>
+
+    <datalist id="coverage-options">
+      <option value="343HS"></option>
+      <option value="352T"></option>
+      <option value="401S"></option>
+      <option value="402C"></option>
+      <option value="433S"></option>
+      <option value="443H"></option>
+      <option value="501"></option>
+      <option value="533"></option>
+    </datalist>
+
+    <main>
+      <section class="summary-grid" aria-label="Game summary so far">
+        <div class="summary-card">
+          <p class="readout-title">Fronts So Far</p>
+          <ul class="summary-list" id="frontSummary"></ul>
+        </div>
+        <div class="summary-card">
+          <p class="readout-title">Coverages So Far</p>
+          <ul class="summary-list" id="coverageSummary"></ul>
+        </div>
+        <div class="summary-card">
+          <p class="readout-title">Offensive Formations So Far</p>
+          <ul class="summary-list" id="formationSummary"></ul>
+        </div>
+      </section>
+
+      <section class="entry-list" aria-label="Previous entries">
+        <p class="readout-title">Previous Entries</p>
+        <div id="entryList"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const fields = [
+      "down",
+      "distance",
+      "yardLine",
+      "hash",
+      "front",
+      "coverage",
+      "offensiveFormation",
+      "playType",
+      "result",
+      "gainLoss",
+      "offensivePlay",
+      "playDirection",
+      "explosive",
+      "notes"
+    ];
+    const $ = (id) => document.getElementById(id);
+    const gameEntries = JSON.parse(localStorage.getItem("defenseDashboardV2Entries") || "[]");
+    let editingIndex = null;
+
+    function parseNumberEntry(value) {
+      const match = String(value).match(/\d+/);
+      return match ? match[0] : "";
+    }
+
+    function addEntry() {
+      const entry = {
+        down: parseNumberEntry($("down").value),
+        distance: parseNumberEntry($("distance").value),
+        yardLine: parseNumberEntry($("yardLine").value),
+        hash: $("hash").value,
+        front: $("front").value.trim(),
+        coverage: $("coverage").value.trim(),
+        offensiveFormation: $("offensiveFormation").value.trim(),
+        playType: $("playType").value,
+        result: $("result").value,
+        gainLoss: parseSignedNumberEntry($("gainLoss").value),
+        offensivePlay: $("offensivePlay").value.trim(),
+        playDirection: $("playDirection").value,
+        explosive: $("explosive").value,
+        notes: $("notes").value.trim()
+      };
+
+      if (!entry.front && !entry.coverage && !entry.offensiveFormation && !entry.offensivePlay && !entry.notes) {
+        return;
+      }
+
+      if (editingIndex === null) {
+        gameEntries.push(entry);
+      } else {
+        gameEntries[editingIndex] = entry;
+        exitEditMode();
+      }
+
+      saveEntries();
+      renderAll();
+      setSituationFromLastEntry();
+      clearPostSnapFields();
+    }
+
+    function parseSignedNumberEntry(value) {
+      const match = String(value).match(/-?\d+/);
+      if (!match) return "0";
+      const number = Number(match[0]);
+      return number > 0 ? `+${number}` : String(number);
+    }
+
+    function countValues(key) {
+      return gameEntries.reduce((counts, entry) => {
+        const value = normalizedText(entry[key]);
+        if (!value) return counts;
+        counts[value] = (counts[value] || 0) + 1;
+        return counts;
+      }, {});
+    }
+
+    function normalizedText(value) {
+      return String(value || "")
+        .trim()
+        .replace(/^['"]+|['"]+$/g, "")
+        .replace(/\s+/g, " ")
+        .toUpperCase();
+    }
+
+    function renderSummary(listId, counts) {
+      const entries = Object.entries(counts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+      $(listId).innerHTML = entries.length
+        ? entries.map(([name, count]) => `
+          <li class="summary-item">
+            <span>${name}</span>
+            <span class="summary-count">${count}</span>
+          </li>
+        `).join("")
+        : `<li class="empty-state">No entries yet.</li>`;
+    }
+
+    function renderSummaries() {
+      renderSummary("frontSummary", countValues("front"));
+      renderSummary("coverageSummary", countValues("coverage"));
+      renderSummary("formationSummary", countValues("offensiveFormation"));
+    }
+
+    function saveEntries() {
+      localStorage.setItem("defenseDashboardV2Entries", JSON.stringify(gameEntries));
+    }
+
+    function numeric(value, fallback = 0) {
+      const match = String(value ?? "").match(/-?\d+/);
+      if (!match) return fallback;
+      const parsed = Number(match[0]);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function nextSituation(entry) {
+      const down = numeric(entry.down, 1);
+      const distance = Math.max(1, numeric(entry.distance, 10));
+      const yardLine = Math.max(1, Math.min(99, numeric(entry.yardLine, 25)));
+      const gain = numeric(entry.gainLoss, 0);
+      const nextYardLine = Math.max(1, Math.min(99, yardLine + gain));
+      const firstDown = gain >= distance;
+      if (firstDown) {
+        return {
+          down: 1,
+          distance: Math.max(1, Math.min(10, 100 - nextYardLine)),
+          yardLine: nextYardLine
+        };
+      }
+      return {
+        down: Math.min(4, down + 1),
+        distance: Math.max(1, distance - gain),
+        yardLine: nextYardLine
+      };
+    }
+
+    function setSituationFromLastEntry() {
+      if (!gameEntries.length) {
+        $("down").value = "1";
+        $("distance").value = "10";
+        $("yardLine").value = "25";
+        return;
+      }
+      const next = nextSituation(gameEntries[gameEntries.length - 1]);
+      $("down").value = String(next.down);
+      $("distance").value = String(next.distance);
+      $("yardLine").value = String(next.yardLine);
+    }
+
+    function clearPostSnapFields() {
+      $("gainLoss").value = "0";
+      $("offensivePlay").value = "";
+      $("notes").value = "";
+      $("explosive").value = "No";
+    }
+
+    function renderEntryList() {
+      $("entryList").innerHTML = gameEntries.length
+        ? gameEntries.map((entry, index) => `
+          <div class="entry-row">
+            <div class="entry-number">#${index + 1}</div>
+            <div class="entry-main">
+              <span>${entry.down || "-"} & ${entry.distance || "-"} @ ${entry.yardLine || "-"} | ${entry.front || "No front"} / ${entry.coverage || "No coverage"}</span>
+              <span class="entry-detail">${entry.offensiveFormation || "No formation"} | ${entry.playType || "-"} ${entry.result || "-"} ${entry.gainLoss || "0"} | ${entry.offensivePlay || "No off play"} ${entry.playDirection || ""}</span>
+            </div>
+            <div class="edit-actions">
+              <button class="secondary-button" type="button" data-edit-index="${index}">Edit</button>
+              <button class="secondary-button" type="button" data-delete-index="${index}">Delete</button>
+            </div>
+          </div>
+        `).join("")
+        : `<p class="empty-state">No entries yet.</p>`;
+
+      document.querySelectorAll("[data-edit-index]").forEach((button) => {
+        button.addEventListener("click", () => startEdit(Number(button.dataset.editIndex)));
+      });
+      document.querySelectorAll("[data-delete-index]").forEach((button) => {
+        button.addEventListener("click", () => deleteEntry(Number(button.dataset.deleteIndex)));
+      });
+    }
+
+    function deleteEntry(index) {
+      if (!gameEntries[index]) return;
+      gameEntries.splice(index, 1);
+      if (editingIndex === index) {
+        exitEditMode();
+        clearPostSnapFields();
+      } else if (editingIndex !== null && index < editingIndex) {
+        editingIndex -= 1;
+      }
+      saveEntries();
+      renderAll();
+      setSituationFromLastEntry();
+    }
+
+    function startEdit(index) {
+      const entry = gameEntries[index];
+      if (!entry) return;
+      editingIndex = index;
+      setFormFromEntry(entry);
+      $("enterPlay").textContent = "Save Edit";
+      $("cancelEdit").hidden = false;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function setFormFromEntry(entry) {
+      $("down").value = entry.down || "";
+      $("distance").value = entry.distance || "";
+      $("yardLine").value = entry.yardLine || "";
+      $("hash").value = entry.hash || "Center";
+      $("front").value = entry.front || "";
+      $("coverage").value = entry.coverage || "";
+      $("offensiveFormation").value = entry.offensiveFormation || "";
+      $("playType").value = entry.playType || "Run";
+      $("result").value = entry.result || "Rush";
+      $("gainLoss").value = entry.gainLoss || "0";
+      $("offensivePlay").value = entry.offensivePlay || "";
+      $("playDirection").value = entry.playDirection || "Middle";
+      $("explosive").value = entry.explosive || "No";
+      $("notes").value = entry.notes || "";
+    }
+
+    function exitEditMode() {
+      editingIndex = null;
+      $("enterPlay").textContent = "Enter";
+      $("cancelEdit").hidden = true;
+    }
+
+    function cancelEdit() {
+      exitEditMode();
+      setSituationFromLastEntry();
+      clearPostSnapFields();
+    }
+
+    function renderAll() {
+      renderSummaries();
+      renderEntryList();
+    }
+
+    function exportExcel() {
+      const columns = [
+        ["playNumber", "Play #"],
+        ["down", "Down"],
+        ["distance", "Distance"],
+        ["yardLine", "Yard Line"],
+        ["hash", "Hash"],
+        ["front", "Front"],
+        ["coverage", "Coverage"],
+        ["offensiveFormation", "Offensive Formation"],
+        ["playType", "Play Type"],
+        ["result", "Result"],
+        ["gainLoss", "Gain/Loss"],
+        ["offensivePlay", "Offensive Play"],
+        ["playDirection", "Direction"],
+        ["explosive", "Explosive"],
+        ["notes", "Notes"]
+      ];
+
+      const header = columns.map(([, label]) => `<th>${escapeHtml(label)}</th>`).join("");
+      const rows = gameEntries.map((entry, index) => {
+        return `<tr>${columns.map(([key]) => {
+          const value = key === "playNumber" ? index + 1 : entry[key] || "";
+          return `<td>${escapeHtml(value)}</td>`;
+        }).join("")}</tr>`;
+      }).join("");
+
+      const workbook = `
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              table { border-collapse: collapse; }
+              th, td { border: 1px solid #999; padding: 6px; }
+              th { background: #d9ead3; }
+            </style>
+          </head>
+          <body>
+            <table>
+              <thead><tr>${header}</tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </body>
+        </html>
+      `;
+
+      const blob = new Blob([workbook], { type: "application/vnd.ms-excel;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const date = new Date().toISOString().slice(0, 10);
+      link.href = url;
+      link.download = `defensive-game-data-${date}.xls`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    fields.forEach((id) => {
+      $(id).addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          addEntry();
+        }
+      });
+    });
+    $("enterPlay").addEventListener("click", addEntry);
+    $("cancelEdit").addEventListener("click", cancelEdit);
+    $("exportExcel").addEventListener("click", exportExcel);
+    renderAll();
+    setSituationFromLastEntry();
+  </script>
+</body>
+</html>
